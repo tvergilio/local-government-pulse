@@ -26,46 +26,22 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
-      - kafka-network
-
-  jobmanager:
-    image: flink:1.17.2-scala_2.12
-    ports:
-      - "8081:8081"
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        jobmanager.memory.process.size: 1g
-    env_file:
-      - .env
-    command: jobmanager
-    networks:
-      - flink-network
-      - kafka-network
-
-  taskmanager:
-    image: flink:1.17.2-scala_2.12
-    environment:
-      - |
-        FLINK_PROPERTIES=
-        jobmanager.rpc.address: jobmanager
-        taskmanager.numberOfTaskSlots: 1
-        taskmanager.memory.process.size: 4g
-        parallelism.default: 1
-    deploy:
-      resources:
-        limits:
-          cpus: '2.0'
-          memory: 4g
-    env_file:
-      - .env
-    command: taskmanager
+      - kafka-network     
+  
+  stream-processor:
+    build: ./kafka-stream-solution/stream-processor
     depends_on:
-      - jobmanager
+      - kafka
     networks:
-      - flink-network
       - kafka-network
+    
+  redis:
+    image: redis:6.2.1
+    ports:
+      - "6379:6379"
+    networks:
+      - spark-network
+      - kafka-network  
 
   slack-producer:
     image: openjdk:21
@@ -88,9 +64,23 @@ services:
       - kafka
     networks:
       - kafka-network
+      
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    networks:
+      - spark-network
+    entrypoint: /bin/bash
+    command: -c  "ollama serve & sleep 2 && ollama run tinyllama && tail -f /dev/null"
 
 networks:
-  flink-network:
+  spark-network:
     driver: bridge
   kafka-network:
     driver: bridge
+volumes:
+  ollama:

@@ -20,3 +20,32 @@ build/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Ignore .NET build artifacts
+bin/
+obj/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.config
+*.csproj.user
+
+# Rider and Visual Studio Code files
+.vscode/
+.vscode/*
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sln.ide
+
+# Ignore coverage tool output
+coverage/
+coverage*.json
+.ncrunchsolution
+*.ncrunchproject
+
+# Exclude Alpine librdkafka shared libraries
+*.so
+*.so.*
