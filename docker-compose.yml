@@ -40,7 +40,6 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - spark-network
       - kafka-network  
 
   slack-producer:
@@ -73,13 +72,11 @@ services:
     volumes:
       - ollama:/root/.ollama
     networks:
-      - spark-network
+      - kafka-network
     entrypoint: /bin/bash
-    command: -c  "ollama serve & sleep 2 && ollama run tinyllama && tail -f /dev/null"
+    command: -c  "ollama serve & sleep 2 && ollama run mistral && tail -f /dev/null"
 
 networks:
-  spark-network:
-    driver: bridge
   kafka-network:
     driver: bridge
 volumes:
