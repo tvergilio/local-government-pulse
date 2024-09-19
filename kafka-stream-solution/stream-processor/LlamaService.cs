@@ -1,7 +1,7 @@
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using stream_processor;
+
+namespace stream_processor;
 
 public class LlamaService
 {
