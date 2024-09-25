@@ -34,7 +34,9 @@ services:
       - kafka
     networks:
       - kafka-network
-    
+    env_file:
+      - .env
+  
   redis:
     image: redis:6.2.1
     ports:

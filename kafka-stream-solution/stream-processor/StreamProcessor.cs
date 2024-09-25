@@ -3,7 +3,7 @@ using Streamiz.Kafka.Net.SerDes;
 
 namespace stream_processor
 {
-    public class StreamProcessor(LlamaService llamaService)
+    public class StreamProcessor(IMessageProcessingService messageProcessingService)
     {
         public async Task StartKafkaStreamAsync()
         {
@@ -14,10 +14,10 @@ namespace stream_processor
                 BootstrapServers = "kafka:9092"
             };
 
-            // Stream Processing with Llama API call
+            // Stream Processing with message processing API call
             var builder = new StreamBuilder();
             builder.Stream<string, string>("slack_messages")
-                .MapValues(value => llamaService.ProcessTextWithLlamaAsync(value).Result)  
+                .MapValues(value => messageProcessingService.ProcessTextAsync(value).Result)  
                 .To("results");
 
             // Start Kafka Streams

@@ -49,3 +49,6 @@ coverage*.json
 # Exclude Alpine librdkafka shared libraries
 *.so
 *.so.*
+
+# Ignore JetBrains Rider settings
+KafkaStreamSolution.sln.DotSettings

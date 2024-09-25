@@ -3,22 +3,15 @@ using System.Text.Json;
 
 namespace stream_processor;
 
-public class LlamaService
+public class LlamaService(HttpClient httpClient) : IMessageProcessingService
 {
-    private readonly HttpClient _httpClient;
-
-    public LlamaService()
+    public async Task<string> ProcessTextAsync(string message)
     {
-        _httpClient = new HttpClient();
-    }
-
-    public async Task<string> ProcessTextWithLlamaAsync(string prompt)
-    {
-        // Prepare the JSON payload for the API request
         var requestPayload = new
         {
             model = "mistral",
-            prompt = $"<s>[INST] <<SYS>>\nYou are a sentiment analysis expert who provides sentiment scores on a scale from 0 to 5, where 0 is very negative and 5 is very positive.\n<</SYS>>\nAnalyze the sentiment of this message: \"{prompt}\" and return a JSON object with a single field \"sentiment_score\" containing a number from 0 to 5.\nDo not include any additional text or explanations, just output the JSON object.\n[/INST]",
+            prompt = $@"
+            [INST] <<SYS>> You are an expert at identifying themes and analyzing sentiment from text based on predefined categories. <<SYS>> Below are themes of local government interest: [Road Infrastructure, Public Transportation, Waste Management, Public Safety, Health Services, Education, Housing, Environmental Concerns, Public Participation, Budget Allocation]. Please match the following message to the most relevant themes and provide sentiment scoring (0 to 5) for each theme, with 0 being extremely negative and 5 being extremely positive. Do not return themes that are not present in the message. Message: 'The schools are good.' Return the result in a JSON format with the list of matching themes and sentiment scores for each theme. Do not include \""```json \"" or \""```\"". [/INST]",
             temperature = 0.7,
             top_p = 0.9,
             n = 1,
@@ -29,18 +22,19 @@ public class LlamaService
         var content = new StringContent(jsonRequest, Encoding.UTF8, "application/json");
 
         // Make the request to the LLama API
-        var response = await _httpClient.PostAsync("http://ollama:11434/api/generate", content);
+        var response = await httpClient.PostAsync("http://ollama:11434/api/generate", content);
         if (response.IsSuccessStatusCode)
         {
             var responseString = await response.Content.ReadAsStringAsync();
             var responseObject = JsonSerializer.Deserialize<LlamaResponse>(responseString);
 
             // Extract the JSON portion from the response field
-            if (responseObject != null && responseObject.response != null)
+            if (responseObject != null)
             {
                 return ExtractJsonFromResponse(responseObject.response);
             }
         }
+
         return "Error processing sentiment analysis.";
     }
 
@@ -55,5 +49,4 @@ public class LlamaService
 
         return "Invalid response format.";
     }
-    
 }
