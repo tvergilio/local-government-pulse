@@ -17,8 +17,10 @@ namespace stream_processor
             // Stream Processing with message processing API call
             var builder = new StreamBuilder();
             builder.Stream<string, string>("slack_messages")
-                .MapValues(value => messageProcessingService.ProcessTextAsync(value).Result)  
-                .To("results");
+                .MapValues(value => messageProcessingService.ProcessTextAsync(value).Result)
+                .MapValues(ExtractJsonFromResponse)
+                .Filter((key, value) => !string.IsNullOrEmpty(value))
+                .To("processing_results");
 
             // Start Kafka Streams
             var streams = new KafkaStream(builder.Build(), config);
@@ -30,6 +32,24 @@ namespace stream_processor
                 e.Cancel = true;
                 streams.Dispose();
             };
+        }
+        
+        private static string? ExtractJsonFromResponse(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return null; 
+            }
+
+            // Extract JSON content from the message
+            var jsonStartIndex = message.IndexOf("`json", StringComparison.Ordinal) + "`json".Length;
+            var jsonEndIndex = message.LastIndexOf("```", StringComparison.Ordinal);
+            if (jsonStartIndex >= 0 && jsonEndIndex > jsonStartIndex)
+            {
+                var jsonContent = message.Substring(jsonStartIndex, jsonEndIndex - jsonStartIndex).Trim();
+                return jsonContent;
+            }
+            return null;
         }
     }
 }

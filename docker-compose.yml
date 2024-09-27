@@ -56,7 +56,18 @@ services:
       - kafka
     networks:
       - kafka-network
-
+  
+  redis-consumer: 
+    build: ./kafka-stream-solution/redis-consumer
+    container_name: redis-consumer
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - kafka-network
+    env_file:
+      - .env
+    
   websocket-consumer:
     build: ./websocket-consumer
     ports:
