@@ -1,4 +1,6 @@
-﻿using redis_consumer; 
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using redis_consumer; 
 
 // Create a CancellationTokenSource for graceful shutdown
 using var cts = new CancellationTokenSource();
@@ -13,8 +15,16 @@ Console.CancelKeyPress += (_, e) =>
 
 const string redisConnectionString = "redis:6379"; 
 
-// Create an instance of RedisConsumer
-var consumer = new RedisConsumer(redisConnectionString);
+// Create the host builder
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((hostContext, services) =>
+    {
+        // Register RedisConsumer and TrendAggregator as hosted services
+        services.AddHostedService<RedisConsumer>(sp => new RedisConsumer(redisConnectionString));
+        services.AddHostedService<TrendAggregator>(sp => new TrendAggregator(redisConnectionString));
 
-// Start consuming messages asynchronously, passing the cancellation token
-await consumer.StartConsumingAsync(cts.Token);
+    })
+    .Build();
+
+// Start the host and its hosted services
+await host.RunAsync();
