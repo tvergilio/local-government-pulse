@@ -2,6 +2,70 @@
 <html>
 <head>
     <title>Trending Topics</title>
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #F2F2F2; /* Cloud colour */
+            color: #0A0019; /* Carbon colour */
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-weight: bold;
+            font-size: 2.5em;
+            color: #24004C; /* Midnight colour */
+            margin-top: 20px;
+        }
+
+        #topicsContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px;
+        }
+
+        .topic-card {
+            background: #FFFFFF; /* White colour */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            width: 280px; /* Fixed width for consistency */
+            margin-bottom: 20px; /* Consistent spacing */
+            transition: box-shadow 0.2s;
+            border-left: 10px solid transparent; /* Colour indicator */
+        }
+
+        .topic-card:hover {
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .topic-card.top-1 {
+            border-left-color: #FFD700; /* Gold for top relevance */
+        }
+
+        .topic-card.top-2 {
+            border-left-color: #C0C0C0; /* Silver for second relevance */
+        }
+
+        .topic-card.top-3 {
+            border-left-color: #CD7F32; /* Bronze for third relevance */
+        }
+
+        .topic-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: bold;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #24004C; /* Midnight colour */
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
 <h1>Trending Topics</h1>
@@ -19,11 +83,40 @@
         const topicsContainer = document.getElementById("topicsContainer");
         topicsContainer.innerHTML = "";
 
-        topics.forEach(topic => {
-            const topicDiv = document.createElement("div");
-            topicDiv.textContent = `${topic.theme} (Mentions: ${topic.mentions}, Sentiment: ${topic.averageSentiment})`;
-            topicsContainer.appendChild(topicDiv);
+        topics.forEach((topic, index) => {
+            const topicCard = document.createElement("div");
+            topicCard.classList.add("topic-card");
+
+            if (index === 0) {
+                topicCard.classList.add("top-1");
+            } else if (index === 1) {
+                topicCard.classList.add("top-2");
+            } else if (index === 2) {
+                topicCard.classList.add("top-3");
+            }
+
+            const titleDiv = document.createElement("div");
+            titleDiv.classList.add("topic-title");
+            titleDiv.textContent = topic.theme;
+
+            const mentionsDiv = document.createElement("div");
+            mentionsDiv.classList.add("topic-mentions");
+            mentionsDiv.textContent = `Mentions: ${topic.mentions}`;
+
+            const sentimentDiv = document.createElement("div");
+            sentimentDiv.classList.add("topic-sentiment");
+            sentimentDiv.textContent = `Sentiment: ${topic.averageSentiment}`;
+
+            topicCard.appendChild(titleDiv);
+            topicCard.appendChild(mentionsDiv);
+            topicCard.appendChild(sentimentDiv);
+            topicsContainer.appendChild(topicCard);
         });
+    });
+
+    connection.onclose(() => {
+        console.error("SignalR connection lost. Reconnecting...");
+        connection.start().catch(err => console.error("Error reconnecting:", err));
     });
 
     connection.start().then(() => {

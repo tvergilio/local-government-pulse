@@ -9,10 +9,12 @@ namespace hubs
     public class TrendHub : Hub
     {
         private readonly IConnectionMultiplexer _redis;
+        private readonly IHubContext<TrendHub> _hubContext;
 
-        public TrendHub(IConnectionMultiplexer redis)
+        public TrendHub(IConnectionMultiplexer redis, IHubContext<TrendHub> hubContext)
         {
             _redis = redis;
+            _hubContext = hubContext;
         }
 
         public override async Task OnConnectedAsync()
@@ -24,7 +26,7 @@ namespace hubs
             await subscriber.SubscribeAsync("__keyspace@0__:trending-topics", async (channel, notificationType) =>
             {
                 Console.WriteLine($"Received Redis notification: {notificationType} on channel {channel}");
-                if (notificationType == "zadd" || notificationType == "zrem")
+                if (notificationType == "zadd" || notificationType == "zrem" || notificationType == "zincr")
                 {
                     await SendTrendingTopics();
                 }
@@ -39,17 +41,17 @@ namespace hubs
             var trendingTopics = await db.SortedSetRangeByRankWithScoresAsync("trending-topics", order: Order.Descending);
             Console.WriteLine($"Retrieved {trendingTopics.Length} trending topics from Redis.");
 
-            var topicsWithSentiment = trendingTopics.Select(async item =>
+            var topicsWithSentiment = await Task.WhenAll(trendingTopics.Select(async item =>
             {
                 var statsJson = await db.HashGetAsync("sentiment-averages", item.Element);
                 var stats = JsonSerializer.Deserialize<SentimentStats>(statsJson);
                 var averageSentiment = stats.mentionCount > 0 ? stats.totalSentiment / stats.mentionCount : 0;
 
                 return new { Theme = item.Element.ToString(), Mentions = item.Score, AverageSentiment = averageSentiment };
-            }).Select(t => t.Result).ToList();
+            }));
 
-            Console.WriteLine($"Sending {topicsWithSentiment.Count} topics with sentiment to clients.");
-            await Clients.All.SendAsync("ReceiveTrendingTopics", topicsWithSentiment);
+            Console.WriteLine($"Sending {topicsWithSentiment.Length} topics with sentiment to clients.");
+            await _hubContext.Clients.All.SendAsync("ReceiveTrendingTopics", topicsWithSentiment);
         }
     }
 }
