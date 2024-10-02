@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Trending Topics</title>
+</head>
+<body>
+<h1>Trending Topics</h1>
+<div id="topicsContainer"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/trendHub")
+        .build();
+
+    connection.on("ReceiveTrendingTopics", (topics) => {
+        console.log("Received trending topics data:", topics);
+
+        const topicsContainer = document.getElementById("topicsContainer");
+        topicsContainer.innerHTML = "";
+
+        topics.forEach(topic => {
+            const topicDiv = document.createElement("div");
+            topicDiv.textContent = `${topic.theme} (Mentions: ${topic.mentions}, Sentiment: ${topic.averageSentiment})`;
+            topicsContainer.appendChild(topicDiv);
+        });
+    });
+
+    connection.start().then(() => {
+        console.log("SignalR connection established.");
+        connection.invoke("SendTrendingTopics").then(() => {
+            console.log("Requested initial trending topics data.");
+        }).catch(err => console.error("Error invoking SendTrendingTopics:", err));
+    }).catch(err => console.error("Error starting SignalR connection:", err));
+</script>
+</body>
+</html>

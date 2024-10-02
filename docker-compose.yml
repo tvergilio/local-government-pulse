@@ -68,15 +68,18 @@ services:
     env_file:
       - .env
     
-  websocket-consumer:
-    build: ./websocket-consumer
-    ports:
-      - "8080:8080"
+  websocket-consumer: 
+    build: ./kafka-stream-solution/websocket-consumer
     depends_on:
       - kafka
+      - redis
+    ports:
+      - "9090:8080"  # Expose the Web API on port 9090 
     networks:
       - kafka-network
-      
+    env_file:
+      - .env
+  
   ollama:
     image: ollama/ollama
     container_name: ollama
