@@ -29,15 +29,15 @@
         }
 
         .topic-card {
-            background: #FFFFFF; /* White colour */
             padding: 20px;
+            padding-bottom: 60px; /* Add more padding to ensure no overlap */
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             text-align: left;
-            width: 280px; /* Fixed width for consistency */
-            margin-bottom: 20px; /* Consistent spacing */
+            width: 280px;
+            margin-bottom: 20px;
             transition: box-shadow 0.2s;
-            border-left: 10px solid transparent; /* Colour indicator */
+            border-left: 10px solid transparent;
         }
 
         .topic-card:hover {
@@ -64,8 +64,38 @@
             color: #24004C; /* Midnight colour */
         }
 
+        .sentiment-heart {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            width: 60px; 
+            height: 60px; 
+            font-size: 2em; 
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sentiment-5 { color: #28a745; } /* Green for very positive */
+        .sentiment-4 { color: #85e085; } /* Light green for positive */
+        .sentiment-3 { color: #FFC107; } /* Amber for neutral */
+        .sentiment-2 { color: #fd7e14; } /* Orange for negative */
+        .sentiment-1 { color: #dc3545; } /* Red for very negative */
+
+        .sentiment-score {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #FFFFFF;
+            font-weight: bold;
+            font-size: 0.6em; /* Scale down to fit inside the heart */
+        }
+
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 <h1>Trending Topics</h1>
@@ -86,6 +116,7 @@
         topics.forEach((topic, index) => {
             const topicCard = document.createElement("div");
             topicCard.classList.add("topic-card");
+            topicCard.style.position = 'relative'; // Required for proper positioning of sentiment heart
 
             if (index === 0) {
                 topicCard.classList.add("top-1");
@@ -103,13 +134,38 @@
             mentionsDiv.classList.add("topic-mentions");
             mentionsDiv.textContent = `Mentions: ${topic.mentions}`;
 
-            const sentimentDiv = document.createElement("div");
-            sentimentDiv.classList.add("topic-sentiment");
-            sentimentDiv.textContent = `Sentiment: ${topic.averageSentiment}`;
+            // Create sentiment heart icon with score
+            const sentimentHeart = document.createElement("div");
+            sentimentHeart.classList.add("sentiment-heart");
 
+            // Use a Font Awesome heart icon
+            const heartIcon = document.createElement("i");
+            heartIcon.classList.add("fas", "fa-heart");
+
+            // Apply appropriate sentiment color
+            if (topic.averageSentiment === 5) {
+                sentimentHeart.classList.add("sentiment-5");
+            } else if (topic.averageSentiment === 4) {
+                sentimentHeart.classList.add("sentiment-4");
+            } else if (topic.averageSentiment === 3) {
+                sentimentHeart.classList.add("sentiment-3");
+            } else if (topic.averageSentiment === 2) {
+                sentimentHeart.classList.add("sentiment-2");
+            } else if (topic.averageSentiment === 1) {
+                sentimentHeart.classList.add("sentiment-1");
+            }
+
+            sentimentHeart.appendChild(heartIcon);
+
+            // Add sentiment score inside the heart
+            const sentimentScore = document.createElement("span");
+            sentimentScore.classList.add("sentiment-score");
+            sentimentScore.textContent = topic.averageSentiment;
+
+            sentimentHeart.appendChild(sentimentScore);
             topicCard.appendChild(titleDiv);
             topicCard.appendChild(mentionsDiv);
-            topicCard.appendChild(sentimentDiv);
+            topicCard.appendChild(sentimentHeart);
             topicsContainer.appendChild(topicCard);
         });
     });
