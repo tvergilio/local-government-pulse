@@ -29,8 +29,9 @@
         }
 
         .topic-card {
+            position: relative;
             padding: 20px;
-            padding-bottom: 60px; /* Add more padding to ensure no overlap */
+            padding-bottom: 80px; 
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             text-align: left;
@@ -64,13 +65,34 @@
             color: #24004C; /* Midnight colour */
         }
 
+        .mentions-count {
+            font-size: 1em;
+            color: #24004C; /* Midnight colour */
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background-color: #E2E2E2; /* Light grey for the empty part */
+            margin-top: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #C4FF35;
+            border-radius: 5px 0 0 5px;
+        }
+
         .sentiment-heart {
             position: absolute;
             bottom: 10px;
             right: 10px;
-            width: 60px; 
-            height: 60px; 
-            font-size: 2em; 
+            width: 80px; 
+            height: 80px; 
+            font-size: 2.5em; 
             color: #FFFFFF;
             display: flex;
             align-items: center;
@@ -90,7 +112,7 @@
             transform: translate(-50%, -50%);
             color: #FFFFFF;
             font-weight: bold;
-            font-size: 0.6em; /* Scale down to fit inside the heart */
+            font-size: 0.5em; 
         }
 
     </style>
@@ -116,7 +138,6 @@
         topics.forEach((topic, index) => {
             const topicCard = document.createElement("div");
             topicCard.classList.add("topic-card");
-            topicCard.style.position = 'relative'; // Required for proper positioning of sentiment heart
 
             if (index === 0) {
                 topicCard.classList.add("top-1");
@@ -131,8 +152,16 @@
             titleDiv.textContent = topic.theme;
 
             const mentionsDiv = document.createElement("div");
-            mentionsDiv.classList.add("topic-mentions");
+            mentionsDiv.classList.add("mentions-count");
             mentionsDiv.textContent = `Mentions: ${topic.mentions}`;
+
+            const progressBar = document.createElement("div");
+            progressBar.classList.add("progress-bar");
+
+            const progressBarFill = document.createElement("div");
+            progressBarFill.classList.add("progress-bar-fill");
+            const maxMentions = Math.max(...topics.map(topic => topic.mentions));
+            progressBarFill.style.width = `${(topic.mentions / maxMentions) * 100}%`;
 
             // Create sentiment heart icon with score
             const sentimentHeart = document.createElement("div");
@@ -142,7 +171,7 @@
             const heartIcon = document.createElement("i");
             heartIcon.classList.add("fas", "fa-heart");
 
-            // Apply appropriate sentiment color
+            // Apply appropriate sentiment colour
             if (topic.averageSentiment === 5) {
                 sentimentHeart.classList.add("sentiment-5");
             } else if (topic.averageSentiment === 4) {
@@ -163,8 +192,10 @@
             sentimentScore.textContent = topic.averageSentiment;
 
             sentimentHeart.appendChild(sentimentScore);
+            progressBar.appendChild(progressBarFill);
             topicCard.appendChild(titleDiv);
             topicCard.appendChild(mentionsDiv);
+            topicCard.appendChild(progressBar);
             topicCard.appendChild(sentimentHeart);
             topicsContainer.appendChild(topicCard);
         });
