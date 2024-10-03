@@ -12,6 +12,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 *   **dotnet-gemini-sdk:** A .NET SDK for interacting with the Gemini API. (https://github.com/gsilvamartin/dotnet-gemini-sdk)
 *   **Redis:** An in-memory data store used to track sentiment trends and identify trending topics.
 *   **StackExchange.Redis:** A .NET client library for interacting with Redis
+*   **SignalR:** A .NET library for adding real-time web functionality to applications.
 
 ### System Components:
 
@@ -32,6 +33,10 @@ Local Government Pulse is a real-time Kafka stream processing system built using
     *   Runs periodically as a background service.
     *   Aggregates sentiment data and mention counts from Redis.
     *   Updates the `trending-topics` sorted set to reflect the current trending topics based on mention frequency and average sentiment.
+  
+*   **Web API (`front-end`):**
+    *   Hosts the SignalR hub (`TrendHub`) for real-time communication with the front-end.
+    *   Serves the static files for the front-end application (HTML, CSS, JavaScript).
 
 ### Data Processing Flow:
 
@@ -40,6 +45,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 3.  **Store:** The analysis results (JSON objects) are sent to the `processing_results` topic.
 4.  **Consume and Update Redis:** The `redis-consumer` consumes the analysis results and updates Redis data structures.
 5.  **Aggregate and Identify Trends:** The `TrendAggregator` periodically aggregates the data in Redis and updates the `trending-topics` sorted set.
+6.  **Real-time Updates via SignalR:** The `TrendHub` in the Web API retrieves data from Redis and pushes updates to connected clients in real-time using SignalR.
 
 ### Redis Data Structures:
 
@@ -54,7 +60,17 @@ Local Government Pulse is a real-time Kafka stream processing system built using
         *   `totalSentiment`: The running sum of all sentiment scores for the theme.
         *   `mentionCount`: The total number of times the theme has been mentioned.
 
-___
+### Front-End Visualization:
+
+![front-end-illustration.png](assets/images/front-end-illustration.png)
+The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. 
+It uses a card-based layout, where each card represents a trending topic. The cards are ranked based on relevance 
+(mention count), with the top 3 topics highlighted in gold, silver, and bronze colours. The sentiment score for each topic 
+is represented by a heart-shaped indicator at the bottom right of the card, with the colour of the heart reflecting the 
+sentiment level (ranging from dark red for very positive to dark brown for very negative). The cards update in real-time 
+as new data arrives from the SignalR hub, without requiring a manual refresh of the page.
+
+---
 
 ### Setting Up and Running the Project
 

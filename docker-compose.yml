@@ -74,7 +74,7 @@ services:
       - kafka
       - redis
     ports:
-      - "9090:8080"  # Expose the Web API on port 9090 
+      - "9090:8080"  # Expose on port 9090 
     networks:
       - kafka-network
     env_file:
