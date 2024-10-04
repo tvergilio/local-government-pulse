@@ -38,11 +38,12 @@ services:
       - .env
   
   redis:
-    image: redis:6.2.1
+    image: redis:7.0.0
     ports:
       - "6379:6379"
     networks:
-      - kafka-network  
+      - kafka-network
+    command: redis-server --notify-keyspace-events KEA  
 
   slack-producer:
     image: openjdk:21
