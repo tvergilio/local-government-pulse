@@ -16,6 +16,8 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 
 ### System Components:
 
+![architecture.png](assets/images/architecture.png)
+
 *   **Kafka Topics:**
     *   `slack_messages`: Ingests raw messages from Slack (or other sources)
     *   `processing_results`: Stores the results of sentiment analysis and theme identification performed by Gemini.
@@ -50,8 +52,8 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 ### Redis Data Structures:
 
 *   **Sorted Set: `trending-topics`**
-    *   Stores the themes, sorted by their mention counts in descending order.
-    *   The scores in this sorted set represent the frequency of mentions for each theme.
+    *   Stores the themes, sorted by relevance in descending order.
+    *   The scores in this sorted set represent the relevance of each theme (currently implemented as total mention count).
 
 *   **Hash: `sentiment-averages`**
     *   Stores the cumulative sentiment scores and mention counts for each theme.
