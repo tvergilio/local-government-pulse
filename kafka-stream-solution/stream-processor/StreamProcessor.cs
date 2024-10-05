@@ -17,6 +17,7 @@ namespace stream_processor
             // Stream Processing with message processing API call
             var builder = new StreamBuilder();
             builder.Stream<string, string>("slack_messages")
+                .Filter((key, value) => !string.IsNullOrEmpty(value)) // Don't send empty messages to Gemini
                 .MapValues(value => messageProcessingService.ProcessTextAsync(value).Result)
                 .MapValues(ExtractJsonFromResponse)
                 .Filter((key, value) => !string.IsNullOrEmpty(value))
