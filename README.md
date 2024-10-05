@@ -30,9 +30,10 @@ Local Government Pulse is a real-time Kafka stream processing system built using
     *   Updates Redis data structures to track sentiment trends and mention counts.
 
 *   **Trend Aggregator (`redis-consumer`):**
+    *   Emulates windowing and aggregation in a stream processing application.  
     *   Runs periodically as a background service.
-    *   Aggregates sentiment data and mention counts from Redis.
-    *   Updates the `trending-topics` sorted set to reflect the current trending topics based on mention frequency and average sentiment.
+    *   Calculates relevance by aggregating sentiment data and mention counts from Redis.
+    *   Updates the `trending-topics` sorted set to reflect the current trending topics.
   
 *   **Web API (`front-end`):**
     *   Hosts the SignalR hub (`TrendHub`) for real-time communication with the front-end.
