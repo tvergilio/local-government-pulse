@@ -85,6 +85,10 @@ namespace redis_consumer
             return Task.CompletedTask;
         }
 
+        /**
+         * Here, Redis is used as a state store for sentiment analysis results in much the same way as
+         * accumulators in a stream processing system. 
+         */
         private async Task UpdateRedis(Dictionary<string, int> result)
         {
             var db = _redis.GetDatabase();
