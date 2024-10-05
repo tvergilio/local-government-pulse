@@ -16,7 +16,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 
 ### System Components:
 
-![architecture.png](assets/images/architecture.png)
+![components.png](assets/images/components.png)
 
 *   **Kafka Topics:**
     *   `slack_messages`: Ingests raw messages from Slack (or other sources)
