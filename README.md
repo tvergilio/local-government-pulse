@@ -16,6 +16,8 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 
 ### System Components:
 
+![architecture.png](assets/images/architecture.png)
+
 *   **Kafka Topics:**
     *   `slack_messages`: Ingests raw messages from Slack (or other sources)
     *   `processing_results`: Stores the results of sentiment analysis and theme identification performed by Gemini.
@@ -45,14 +47,14 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 2.  **Process:** Messages are sent to Gemini for sentiment analysis and theme identification.
 3.  **Store:** The analysis results (JSON objects) are sent to the `processing_results` topic.
 4.  **Consume and Update Redis:** The `redis-consumer` consumes the analysis results and updates Redis data structures.
-5.  **Aggregate and Identify Trends:** The `TrendAggregator` periodically aggregates the data in Redis and updates the `trending-topics` sorted set.
+5.  **Aggregate and Identify Trends:** The `TrendAggregator` works like a manual windowing function. It periodically aggregates the data in Redis and updates the `trending-topics` sorted set.
 6.  **Real-time Updates via SignalR:** The `TrendHub` in the Web API retrieves data from Redis and pushes updates to connected clients in real-time using SignalR.
 
 ### Redis Data Structures:
 
 *   **Sorted Set: `trending-topics`**
-    *   Stores the themes, sorted by their mention counts in descending order.
-    *   The scores in this sorted set represent the frequency of mentions for each theme.
+    *   Stores the themes, sorted by relevance in descending order.
+    *   The scores in this sorted set represent the relevance of each theme (currently implemented as total mention count).
 
 *   **Hash: `sentiment-averages`**
     *   Stores the cumulative sentiment scores and mention counts for each theme.
@@ -64,6 +66,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 ### Front-End Visualization:
 
 ![front-end-illustration.png](assets/images/front-end-illustration.png)
+
 The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. 
 It uses a card-based layout, where each card represents a trending topic. The cards are ranked based on relevance 
 (mention count), with the top 3 topics highlighted in gold, silver, and bronze colours. The sentiment score for each topic 

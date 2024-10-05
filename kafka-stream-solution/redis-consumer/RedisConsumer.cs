@@ -95,18 +95,17 @@ namespace redis_consumer
                 {
                     // Use a Lua script for atomic updates
                     var script = @"
-                redis.call('ZINCRBY', KEYS[1], 1, ARGV[1]);
-                local currentStatsJson = redis.call('HGET', KEYS[2], ARGV[1]);
-                local currentStats = cjson.decode(currentStatsJson or '{}');
-                currentStats.totalSentiment = (currentStats.totalSentiment or 0) + ARGV[2];
-                currentStats.mentionCount = (currentStats.mentionCount or 0) + 1;
-                redis.call('HSET', KEYS[2], ARGV[1], cjson.encode(currentStats));
-            ";
+                    local currentStatsJson = redis.call('HGET', KEYS[1], ARGV[1]);  
+                    local currentStats = cjson.decode(currentStatsJson or '{}');
+                    currentStats.totalSentiment = (currentStats.totalSentiment or 0) + tonumber(ARGV[2]);
+                    currentStats.mentionCount = (currentStats.mentionCount or 0) + 1;
+                    redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(currentStats));
+                ";
 
-                    var keys = new RedisKey[] { TrendingTopicsSortedSetName, SentimentAveragesHashName };
-                    var values = new RedisValue[] { item.Key, item.Value };
-
+                    var keys = new RedisKey[] { SentimentAveragesHashName };  
+                    var values = new RedisValue[] { item.Key, item.Value.ToString() };
                     await db.ScriptEvaluateAsync(script, keys, values);
+
                     Console.WriteLine($"Updated Redis: {item.Key} (mention count), {item.Key} (sentiment stats)");
                 }
                 catch (RedisException ex)
