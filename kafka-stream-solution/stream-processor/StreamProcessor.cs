@@ -35,7 +35,7 @@ namespace stream_processor
             };
         }
         
-        private static string? ExtractJsonFromResponse(string message)
+        internal static string? ExtractJsonFromResponse(string message)
         {
             if (string.IsNullOrEmpty(message))
             {
