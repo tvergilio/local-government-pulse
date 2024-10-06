@@ -10,7 +10,15 @@ services:
       - 2181:2181
     networks:
       - kafka-network
-
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+          
   kafka:
     image: confluentinc/cp-kafka:latest
     depends_on:
@@ -27,6 +35,14 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
     networks:
       - kafka-network     
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 2G
   
   stream-processor:
     build: ./kafka-stream-solution/stream-processor
@@ -36,6 +52,14 @@ services:
       - kafka-network
     env_file:
       - .env
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'    
+          memory: 2G      
+        reservations:
+          cpus: '0.5'     
+          memory: 1G        
   
   redis:
     image: redis:7.0.0
@@ -43,8 +67,16 @@ services:
       - "6379:6379"
     networks:
       - kafka-network
-    command: redis-server --notify-keyspace-events KEA  
-
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    command: redis-server --notify-keyspace-events KEA --maxmemory-policy volatile-lru --maxmemory 512mb
+    
   slack-producer:
     image: openjdk:21
     volumes:
@@ -57,7 +89,15 @@ services:
       - kafka
     networks:
       - kafka-network
-  
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    
   redis-consumer: 
     build: ./kafka-stream-solution/redis-consumer
     container_name: redis-consumer
@@ -68,7 +108,15 @@ services:
       - kafka-network
     env_file:
       - .env
-    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
   websocket-consumer: 
     build: ./kafka-stream-solution/websocket-consumer
     depends_on:
@@ -80,7 +128,15 @@ services:
       - kafka-network
     env_file:
       - .env
-  
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
   ollama:
     image: ollama/ollama
     container_name: ollama

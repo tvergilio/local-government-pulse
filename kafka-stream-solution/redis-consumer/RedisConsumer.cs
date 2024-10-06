@@ -8,7 +8,6 @@ namespace redis_consumer
     public class RedisConsumer : IHostedService 
     {
         private readonly ConnectionMultiplexer _redis;
-        private const string TrendingTopicsSortedSetName = "trending-topics";
         private const string SentimentAveragesHashName = "sentiment-averages";
         private readonly ConsumerConfig _config;
         private IConsumer<Ignore, string> _consumer;
@@ -97,7 +96,6 @@ namespace redis_consumer
             {
                 try
                 {
-                    // Use a Lua script for atomic updates
                     var script = @"
                     local currentStatsJson = redis.call('HGET', KEYS[1], ARGV[1]);  
                     local currentStats = cjson.decode(currentStatsJson or '{}');

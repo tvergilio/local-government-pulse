@@ -41,6 +41,10 @@ Local Government Pulse is a real-time Kafka stream processing system built using
     *   Hosts the SignalR hub (`TrendHub`) for real-time communication with the front-end.
     *   Serves the static files for the front-end application (HTML, CSS, JavaScript).
 
+### Resource Allocation:
+
+[Resource Allocation Guide](RESOURCE_ALLOCATION.md) - A detailed explanation of the resource allocation for each component, based on a MacBook Pro environment.
+
 ### Data Processing Flow:
 
 1.  **Ingest:** Raw messages are received from the `slack_messages` topic.
