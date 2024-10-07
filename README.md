@@ -71,12 +71,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 
 ![front-end-illustration.png](assets/images/front-end-illustration.png)
 
-The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. 
-It uses a card-based layout, where each card represents a trending topic. The cards are ranked based on relevance 
-(mention count), with the top 3 topics highlighted in gold, silver, and bronze colours. The sentiment score for each topic 
-is represented by a heart-shaped indicator at the bottom right of the card, with the colour of the heart reflecting the 
-sentiment level (ranging from dark red for very positive to dark brown for very negative). The cards update in real-time 
-as new data arrives from the SignalR hub, without requiring a manual refresh of the page.
+The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. It uses a ranked list layout, where each row represents a trending topic. The topics are ranked based on relevance (mention count), with the ranking number displayed prominently on the left. Each row contains the topic title, mention count, and sentiment score, along with a progress bar visualising the relative mention count. The sentiment score is represented using an emoji indicator to convey the sentiment level in an intuitive and friendly manner. The list is updated in real-time as new data arrives from the SignalR hub, ensuring a dynamic and interactive experience without requiring a manual page refresh.
 
 ---
 
