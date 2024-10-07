@@ -20,107 +20,126 @@
             margin-top: 20px;
         }
 
-        #topicsContainer {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
+        #filterContainer {
             margin: 20px;
         }
 
-        .topic-card {
-            position: relative;
-            padding: 20px;
-            padding-bottom: 80px; 
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: left;
-            width: 280px;
-            margin-bottom: 20px;
-            transition: box-shadow 0.2s;
-            border-left: 10px solid transparent;
+        #filterSelect {
+            font-family: 'Montserrat', sans-serif;
+            padding: 8px;
+            border: 2px solid #24004C; /* Midnight colour */
+            border-radius: 5px;
+            background-color: #FFFFFF;
+            color: #0A0019;
+            font-size: 1em;
         }
 
-        .topic-card:hover {
+        #topicsContainer {
+            width: 85%;
+            max-width: 1000px;
+            margin: 20px auto;
+        }
+
+        .topic-row {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #FFFFFF;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s ease;
+            position: relative;
+        }
+
+        .topic-row:hover {
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
-        .topic-card.top-1 {
-            border-left-color: #FFD700; /* Gold for top relevance */
+        .ranking-number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #0A0019; /* Carbon colour */
+            margin-bottom: 5px;
         }
 
-        .topic-card.top-2 {
-            border-left-color: #C0C0C0; /* Silver for second relevance */
-        }
-
-        .topic-card.top-3 {
-            border-left-color: #CD7F32; /* Bronze for third relevance */
+        .topic-info {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
         }
 
         .topic-title {
             font-family: 'Syne', sans-serif;
             font-weight: bold;
-            font-size: 1.5em;
-            margin-bottom: 10px;
+            font-size: 1.2em;
             color: #24004C; /* Midnight colour */
         }
 
-        .mentions-count {
+        .mentions-sentiment {
             font-size: 1em;
-            color: #24004C; /* Midnight colour */
-            margin-bottom: 10px;
+            color: #0A0019; /* Carbon colour */
         }
 
         .progress-bar {
             width: 100%;
-            height: 10px;
-            border-radius: 5px;
+            height: 15px;
+            border-radius: 10px;
             background-color: #E2E2E2; /* Light grey for the empty part */
-            margin-top: 15px;
+            margin-top: 5px;
             overflow: hidden;
         }
 
         .progress-bar-fill {
             height: 100%;
-            background-color: #C4FF35;
-            border-radius: 5px 0 0 5px;
+            background-color: #C4FF35; /* Acid for the positive part */
+            transition: width 0.4s ease;
         }
 
-        .sentiment-heart {
+        .sentiment-face {
             position: absolute;
-            bottom: 10px;
+            top: 10px;
             right: 10px;
-            width: 80px; 
-            height: 80px; 
-            font-size: 2.5em; 
-            color: #FFFFFF;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 30px;
+            height: 30px;
         }
 
-        .sentiment-5 { color: #8B0000; } /* Dark red for very positive */
-        .sentiment-4 { color: #B22222; } /* Firebrick for positive */
-        .sentiment-3 { color: #CD853F; } /* Darker tan for neutral */
-        .sentiment-2 { color: #D2691E; } /* Chocolate for somewhat negative */
-        .sentiment-1 { color: #5C4033; } /* Dark brown for very negative */
-
-        .sentiment-score {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #FFFFFF;
-            font-weight: bold;
-            font-size: 0.5em; 
+        @media screen and (max-width: 600px) {
+            .ranking-number {
+                font-size: 1.2em;
+            }
+            .topic-title {
+                font-size: 1em;
+            }
+            .mentions-sentiment {
+                font-size: 0.9em;
+            }
+            .progress-bar {
+                height: 10px;
+            }
+            .sentiment-face {
+                width: 20px;
+                height: 20px;
+                top: 5px;
+                right: 5px;
+            }
         }
-
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 <h1>Trending Topics</h1>
+
+<div id="filterContainer">
+    <label for="filterSelect">Filter by:</label>
+    <select id="filterSelect">
+        <option value="mentions">Mentions</option>
+        <option value="sentiment">Sentiment</option>
+    </select>
+</div>
+
 <div id="topicsContainer"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
@@ -129,77 +148,103 @@
         .withUrl("/trendHub")
         .build();
 
+    let topicsData = [];
+
     connection.on("ReceiveTrendingTopics", (topics) => {
         console.log("Received trending topics data:", topics);
+        topicsData = topics;
+        renderTopics(topicsData);
+    });
 
+    document.getElementById("filterSelect").addEventListener("change", () => {
+        const filterType = document.getElementById("filterSelect").value;
+        const sortedTopics = [...topicsData];
+
+        if (filterType === "mentions") {
+            sortedTopics.sort((a, b) => b.mentions - a.mentions);
+        } else if (filterType === "sentiment") {
+            sortedTopics.sort((a, b) => b.averageSentiment - a.averageSentiment);
+        }
+
+        renderTopics(sortedTopics);
+    });
+
+    function renderTopics(topics) {
         const topicsContainer = document.getElementById("topicsContainer");
         topicsContainer.innerHTML = "";
 
         topics.forEach((topic, index) => {
-            const topicCard = document.createElement("div");
-            topicCard.classList.add("topic-card");
+            // Topic row container
+            const topicRow = document.createElement("div");
+            topicRow.classList.add("topic-row");
 
-            if (index === 0) {
-                topicCard.classList.add("top-1");
-            } else if (index === 1) {
-                topicCard.classList.add("top-2");
-            } else if (index === 2) {
-                topicCard.classList.add("top-3");
-            }
+            // Ranking number
+            const rankingNumber = document.createElement("div");
+            rankingNumber.classList.add("ranking-number");
+            rankingNumber.textContent = index + 1;
 
+            // Topic info container
+            const topicInfo = document.createElement("div");
+            topicInfo.classList.add("topic-info");
+
+            // Topic title
             const titleDiv = document.createElement("div");
             titleDiv.classList.add("topic-title");
             titleDiv.textContent = topic.theme;
 
-            const mentionsDiv = document.createElement("div");
-            mentionsDiv.classList.add("mentions-count");
-            mentionsDiv.textContent = `Mentions: ${topic.mentions}`;
+            // Mentions and sentiment
+            const mentionsSentimentDiv = document.createElement("div");
+            mentionsSentimentDiv.classList.add("mentions-sentiment");
+            mentionsSentimentDiv.textContent = `Mentions: ${topic.mentions}, Sentiment: ${topic.averageSentiment}`;
 
+            // Append title and mentions-sentiment to topic info
+            topicInfo.appendChild(titleDiv);
+            topicInfo.appendChild(mentionsSentimentDiv);
+
+            // Progress bar container
             const progressBar = document.createElement("div");
             progressBar.classList.add("progress-bar");
 
+            // Progress bar fill
             const progressBarFill = document.createElement("div");
             progressBarFill.classList.add("progress-bar-fill");
-            const maxMentions = Math.max(...topics.map(topic => topic.mentions));
-            progressBarFill.style.width = `${(topic.mentions / maxMentions) * 100}%`;
+            progressBarFill.style.width = `${(topic.mentions / Math.max(...topics.map(topic => topic.mentions))) * 100}%`;
 
-            // Create sentiment heart icon with score
-            const sentimentHeart = document.createElement("div");
-            sentimentHeart.classList.add("sentiment-heart");
+            // Sentiment face image
+            const sentimentFace = document.createElement("img");
+            sentimentFace.classList.add("sentiment-face");
 
-            // Use a Font Awesome heart icon
-            const heartIcon = document.createElement("i");
-            heartIcon.classList.add("fas", "fa-heart");
-
-            // Apply appropriate sentiment colour
-            if (topic.averageSentiment === 5) {
-                sentimentHeart.classList.add("sentiment-5");
-            } else if (topic.averageSentiment === 4) {
-                sentimentHeart.classList.add("sentiment-4");
-            } else if (topic.averageSentiment === 3) {
-                sentimentHeart.classList.add("sentiment-3");
-            } else if (topic.averageSentiment === 2) {
-                sentimentHeart.classList.add("sentiment-2");
-            } else if (topic.averageSentiment === 1) {
-                sentimentHeart.classList.add("sentiment-1");
+            // Set the appropriate image based on sentiment score
+            switch (topic.averageSentiment) {
+                case 1:
+                    sentimentFace.src = "images/rage.png"; // Very negative
+                    break;
+                case 2:
+                    sentimentFace.src = "images/angry.png"; // Somewhat negative
+                    break;
+                case 3:
+                    sentimentFace.src = "images/neutral_face.png"; // Neutral
+                    break;
+                case 4:
+                    sentimentFace.src = "images/slightly_smiling_face.png"; // Somewhat positive
+                    break;
+                case 5:
+                    sentimentFace.src = "images/smile.png"; // Very positive
+                    break;
+                default:
+                    sentimentFace.src = "path/to/default_sentiment.png"; // Default sentiment
+                    break;
             }
 
-            sentimentHeart.appendChild(heartIcon);
-
-            // Add sentiment score inside the heart
-            const sentimentScore = document.createElement("span");
-            sentimentScore.classList.add("sentiment-score");
-            sentimentScore.textContent = topic.averageSentiment;
-
-            sentimentHeart.appendChild(sentimentScore);
+            // Append elements to the topic row
             progressBar.appendChild(progressBarFill);
-            topicCard.appendChild(titleDiv);
-            topicCard.appendChild(mentionsDiv);
-            topicCard.appendChild(progressBar);
-            topicCard.appendChild(sentimentHeart);
-            topicsContainer.appendChild(topicCard);
+            topicRow.appendChild(rankingNumber);
+            topicRow.appendChild(topicInfo);
+            topicRow.appendChild(progressBar);
+            topicRow.appendChild(sentimentFace);
+            topicsContainer.appendChild(topicRow);
         });
-    });
+    }
 
     connection.onclose(() => {
         console.error("SignalR connection lost. Reconnecting...");
