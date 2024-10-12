@@ -91,24 +91,35 @@ namespace redis_consumer
         private async Task UpdateRedis(Dictionary<string, int> result)
         {
             var db = _redis.GetDatabase();
+            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); // Current timestamp as Unix time
 
             foreach (var item in result)
             {
                 try
                 {
+                    // Updated Lua script to include timestamp
                     var script = @"
                     local currentStatsJson = redis.call('HGET', KEYS[1], ARGV[1]);  
                     local currentStats = cjson.decode(currentStatsJson or '{}');
+                    
+                    -- Update sentiment stats
                     currentStats.totalSentiment = (currentStats.totalSentiment or 0) + tonumber(ARGV[2]);
                     currentStats.mentionCount = (currentStats.mentionCount or 0) + 1;
+                    
+                    -- Add the timestamp
+                    currentStats.timestamp = tonumber(ARGV[3]);
+                    
+                    -- Save the updated stats back to Redis
                     redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(currentStats));
-                ";
+                    ";
 
-                    var keys = new RedisKey[] { SentimentAveragesHashName };  
-                    var values = new RedisValue[] { item.Key, item.Value.ToString() };
+                    // Pass the theme (item.Key), sentiment value (item.Value), and the current timestamp
+                    var keys = new RedisKey[] { SentimentAveragesHashName };
+                    var values = new RedisValue[] { item.Key, item.Value.ToString(), currentTime };
+            
                     await db.ScriptEvaluateAsync(script, keys, values);
 
-                    Console.WriteLine($"Updated Redis: {item.Key} (mention count), {item.Key} (sentiment stats)");
+                    Console.WriteLine($"Updated Redis: {item.Key} (mention count), {item.Key} (sentiment stats with timestamp)");
                 }
                 catch (RedisException ex)
                 {

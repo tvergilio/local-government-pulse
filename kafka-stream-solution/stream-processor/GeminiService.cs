@@ -72,7 +72,8 @@ namespace stream_processor
                 return $"Error processing text: {ex.Message}";
             }
         }
-        internal string SanitiseInput(string input)
+
+        public string SanitiseInput(string input)
         {
             // Replace any special characters or phrases that could influence the prompt
             var sanitisedInput = input.Replace("`", "'")

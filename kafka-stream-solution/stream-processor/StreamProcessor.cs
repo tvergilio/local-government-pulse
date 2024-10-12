@@ -34,8 +34,8 @@ namespace stream_processor
                 streams.Dispose();
             };
         }
-        
-        internal static string? ExtractJsonFromResponse(string message)
+
+        public static string? ExtractJsonFromResponse(string message)
         {
             if (string.IsNullOrEmpty(message))
             {
