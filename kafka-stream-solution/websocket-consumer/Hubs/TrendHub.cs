@@ -26,7 +26,10 @@ namespace hubs
             await subscriber.SubscribeAsync("__keyspace@0__:trending-topics", async (channel, notificationType) =>
             {
                 Console.WriteLine($"Received Redis notification: {notificationType} on channel {channel}");
-                if (notificationType == "zadd" || notificationType == "zrem" || notificationType == "zincr")
+                if (notificationType == "zadd" || notificationType == "zrem" || notificationType == "zincr" || notificationType == "del")
+                {
+                    await SendTrendingTopics();
+                }
                 {
                     await SendTrendingTopics();
                 }
