@@ -9,7 +9,8 @@ public class TrendAggregator : BackgroundService
     private const string TrendingTopicsSortedSetName = "trending-topics";
     private const string SentimentAveragesHashName = "sentiment-averages";
     private byte[]? _luaScriptSha1;
-    private const long WindowSize = 60; // Set to 1 minute or 60 seconds
+    private const long SessionTimeout = 120; // seconds
+    private const int RefreshRate = 30; // seconds
 
     public TrendAggregator(string redisConnectionString)
     {
@@ -18,20 +19,25 @@ public class TrendAggregator : BackgroundService
         Task.Run(async () => _luaScriptSha1 = await LoadLuaScriptAsync());
     }
 
-    // This method loads the Lua script into Redis and returns the SHA1 hash (as a byte[])
+    /**
+     * This method loads the Lua script into Redis and returns the SHA1 hash (as a byte[])
+     * The Lua script iterates over all themes in the hash, updates the sorted set,
+     * and removes inactive sessions from the hash.
+    **/
     private async Task<byte[]> LoadLuaScriptAsync()
     {
         var server = _redis.GetServer(_redis.GetEndPoints()[0]);
         const string luaScript = @"
+        local sessionTimeout = tonumber(ARGV[2]) -- Session timeout passed in ARGV[2]
+
         -- Clear the sorted set before processing new data
         redis.call('DEL', KEYS[2])
 
         -- Retrieve all themes from the hash
         local themes = redis.call('HKEYS', KEYS[1])
 
-        -- Get the current timestamp (passed in as ARGV[1]) and the window size (ARGV[2])
+        -- Get the current timestamp (passed in as ARGV[1])
         local currentTime = tonumber(ARGV[1])
-        local windowSize = tonumber(ARGV[2])
 
         -- Iterate over all themes in the hash
         for i, theme in ipairs(themes) do
@@ -42,9 +48,9 @@ public class TrendAggregator : BackgroundService
             if statsJson and statsJson ~= '' then
                 local stats = cjson.decode(statsJson)
 
-                -- Check if the data is within the current window
-                if stats.timestamp and tonumber(stats.timestamp) + windowSize >= currentTime then
-                    -- Data is within the valid window, so process it
+                -- Check if the session is still active based on session timeout
+                if stats.timestamp and currentTime - tonumber(stats.timestamp) <= sessionTimeout then
+                    -- Session is still active, process it
 
                     -- Compute relevance (based on mentionCount)
                     local relevance = stats.mentionCount or 0
@@ -54,7 +60,7 @@ public class TrendAggregator : BackgroundService
                         redis.call('ZADD', KEYS[2], relevance, theme)
                     end
                 else
-                    -- Data is outside the current window, remove it from the hash
+                    -- Session has ended (inactivity), remove it from the hash
                     redis.call('HDEL', KEYS[1], theme)
                 end
             end
@@ -74,20 +80,25 @@ public class TrendAggregator : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            // Simulate a "tumbling window"
-            Console.WriteLine("Starting aggregation for the " + WindowSize + "s window...");
+            Console.WriteLine("Starting aggregation...");
 
             await AggregateAndIdentifyTrends();
 
-            Console.WriteLine("Completed aggregation for the " + WindowSize + "s window.");
+            Console.WriteLine("Completed aggregation.");
 
-            await Task.Delay(TimeSpan.FromSeconds(WindowSize), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(RefreshRate), stoppingToken);
         }
     }
 
+    /**
+     * This method aggregates sentiment data, identifies trends, and updates the sorted set.
+     * It is similar to a windowed transformation or map operation in stream processing frameworks.
+     * The windowing function is based on a session window with a fixed session timeout.
+     */
     private async Task AggregateAndIdentifyTrends()
     {
         var db = _redis.GetDatabase();
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         // Check if the script SHA1 is loaded, reload if necessary
         if (_luaScriptSha1 == null)
@@ -96,17 +107,14 @@ public class TrendAggregator : BackgroundService
             _luaScriptSha1 = await LoadLuaScriptAsync();
         }
 
-        // Get the current timestamp (Unix time) and define the window size in seconds (e.g., 60 seconds)
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-
-        // Execute the cached Lua script using its SHA1 hash, passing the current timestamp and window size as ARGV
+        // Execute the cached Lua script, passing the current timestamp and session timeout as ARGV
         var redisResult = await db.ScriptEvaluateAsync(
             _luaScriptSha1,
-            new RedisKey[] { SentimentAveragesHashName, TrendingTopicsSortedSetName },
-            new RedisValue[] { currentTime, WindowSize }
+            [SentimentAveragesHashName, TrendingTopicsSortedSetName],
+            [currentTime, SessionTimeout]
         );
 
-        string?[] result = Array.Empty<string>();
+        string?[] result = [];
 
         if (redisResult.IsNull)
         {

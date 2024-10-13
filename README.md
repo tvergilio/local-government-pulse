@@ -23,20 +23,23 @@ Local Government Pulse is a real-time Kafka stream processing system built using
     *   `processing_results`: Stores the results of sentiment analysis and theme identification performed by Gemini.
 
 *   **Stream Processing (`stream-processor`):**
-    *   Consumes messages from the `slack_messages` topic.
+    *   Consumes messages from the `slack_messages` Kafka topic.
     *   Processes messages using the `IMessageProcessingService` (which interacts with Gemini).
-    *   Produces the analysis results (JSON objects) to the `processing_results` topic.
+    *   Produces the analysis results (JSON objects) to the `processing_results` Kafka topic.
 
 *   **Redis Consumer (`redis-consumer`):**
-    *   Consumes messages from the `processing_results` topic.
-    *   Updates Redis data structures to track sentiment trends and mention counts.
+    *   Consumes messages from the `processing_results` Kafka topic.
+    *   Updates Redis data structures to track sentiment trends, mention counts and timestamp using a preloaded and cached Lua script for efficiency and atomicity.
+    *   Each message updates the sentiment and mention count for the relevant theme and records the current timestamp in the sentiment-averages hash.
 
-*   **Trend Aggregator (`redis-consumer`):**
-    *   Emulates windowing and aggregation in a stream processing application.  
-    *   Runs periodically as a background service.
-    *   Calculates relevance by aggregating sentiment data and mention counts from Redis.
-    *   Updates the `trending-topics` sorted set to reflect the current trending topics.
-  
+*   **Trend Aggregator (redis-consumer):**
+    *   Emulates session windowing behaviour using a scheduled background job and atomic Redis transformations through a Lua script. 
+    *   Every 45 seconds, the aggregator checks the timestamp of each theme in the sentiment-averages hash to identify relevant and active topics.
+    *   Topics remain relevant as long as new data arrives, even if some of the previous messages are older than the window duration. 
+    *   This ensures ongoing conversations continue to be tracked accurately, similar to session windows in stream processing frameworks like Apache Flink. 
+    *   Data with no new updates within the session window is ignored for trending calculations and is removed from the sentiment-averages hash to prevent outdated entries from affecting results. 
+    *   Calculates a topic's relevance by aggregating sentiment data and mention counts from Redis.
+    *   Updates the trending-topics sorted set to reflect the current active topics within the session window, ensuring an accurate reflection of real-time activity.
 *   **Web API (`front-end`):**
     *   Hosts the SignalR hub (`TrendHub`) for real-time communication with the front-end.
     *   Serves the static files for the front-end application (HTML, CSS, JavaScript).
@@ -59,20 +62,34 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 *   **Sorted Set: `trending-topics`**
     *   Stores the themes, sorted by relevance in descending order.
     *   The scores in this sorted set represent the relevance of each theme (currently implemented as total mention count).
+    *   The sorted set is refreshed periodically by the `TrendAggregator` to reflect the current trending topics.
 
 *   **Hash: `sentiment-averages`**
-    *   Stores the cumulative sentiment scores and mention counts for each theme.
+    *   Stores the cumulative sentiment scores, mention counts and timestamp for each theme.
     *   The keys in this hash are the theme names.
-    *   The values are JSON strings containing two properties:
+    *   The values contain three properties:
         *   `totalSentiment`: The running sum of all sentiment scores for the theme.
         *   `mentionCount`: The total number of times the theme has been mentioned.
+        *   `timestamp`: The timestamp of the most recent update for the theme.
+    * Rationale: This approach simulates a session window, commonly used in stream processing frameworks such as Apache Flink. 
+    In Flink, session windows group events that arrive close together in time, keeping the window open while activity continues 
+    and closing it after a period of inactivity. <br/><br/>
+    Similarly, as long as new messages for a topic arrive within a reasonable period, the topic remains relevant, and all prior 
+    messages contribute to its sentiment score. This allows sustained discussions to be accurately tracked without prematurely 
+    expiring active topics. <br/><br/>
+    When activity dies down, the topic can gracefully "expire". This model avoids the pitfalls of rigid time-based windows, which 
+    might fragment long-running discussions and dilute the analysis of critical issues.
 
 ### Front-End Visualization:
 
 ![front-end-illustration.png](assets/images/front-end-illustration.png)
 
-The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. It uses a ranked list layout, where each row represents a trending topic. The topics are ranked based on relevance (mention count), with the ranking number displayed prominently on the left. Each row contains the topic title, mention count, and sentiment score, along with a progress bar visualising the relative mention count. The sentiment score is represented using an emoji indicator to convey the sentiment level in an intuitive and friendly manner. The list is updated in real-time as new data arrives from the SignalR hub, ensuring a dynamic and interactive experience without requiring a manual page refresh.
-
+The front-end application provides a visually engaging display of the trending topics, as shown in the illustration above. <br/><br/>
+It uses a ranked list layout, where each row represents a trending topic. <br/>
+The topics are ranked based on relevance (mention count), with the ranking number displayed prominently on the left. <br/><br/>
+Each row contains the topic title, mention count, and sentiment score, along with a progress bar visualising the relative mention count. <br/><br/>
+The sentiment score is represented using an emoji indicator to convey the sentiment level in an intuitive and friendly manner. <br/><br/>
+The list is updated in real-time as new data arrives from the SignalR hub, ensuring a dynamic and interactive experience without requiring a manual page refresh.
 ---
 
 ### Setting Up and Running the Project

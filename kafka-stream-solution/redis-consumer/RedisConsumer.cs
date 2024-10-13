@@ -11,6 +11,7 @@ namespace redis_consumer
         private const string SentimentAveragesHashName = "sentiment-averages";
         private readonly ConsumerConfig _config;
         private IConsumer<Ignore, string> _consumer;
+        private byte[]? _luaScriptSha1;
 
         public RedisConsumer(string redisConnectionString)
         {
@@ -21,6 +22,9 @@ namespace redis_consumer
                 GroupId = "redis-consumer-group",
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
+
+            // Load the Lua script and cache the SHA1 hash at startup
+            Task.Run(async () => _luaScriptSha1 = await LoadLuaScriptAsync());
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -35,6 +39,37 @@ namespace redis_consumer
             _ = Task.Run(() => ConsumeMessagesAsync(cancellationToken), cancellationToken);
 
             return Task.CompletedTask;
+        }
+
+        /**
+         * The Lua script updates the sentiment stats and timestamps in Redis.
+         * It is similar to an accumulator in stream processing frameworks.
+         */
+        private async Task<byte[]> LoadLuaScriptAsync()
+        {
+            var server = _redis.GetServer(_redis.GetEndPoints()[0]);
+
+            // Lua script to update sentiment stats and timestamps
+            const string luaScript = @"
+                local currentStatsJson = redis.call('HGET', KEYS[1], ARGV[1]);  
+                local currentStats = cjson.decode(currentStatsJson or '{}');
+                
+                -- Update sentiment stats
+                currentStats.totalSentiment = (currentStats.totalSentiment or 0) + tonumber(ARGV[2]);
+                currentStats.mentionCount = (currentStats.mentionCount or 0) + 1;
+                
+                -- Add the timestamp
+                currentStats.timestamp = tonumber(ARGV[3]);
+                
+                -- Save the updated stats back to Redis
+                redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(currentStats));
+            ";
+
+            // Load the script into Redis and get its SHA1 hash (as byte[])
+            var sha1Bytes = await server.ScriptLoadAsync(luaScript);
+
+            Console.WriteLine($"Lua script loaded with SHA1 hash.");
+            return sha1Bytes;
         }
 
         private async Task ConsumeMessagesAsync(CancellationToken cancellationToken)
@@ -85,39 +120,34 @@ namespace redis_consumer
         }
 
         /**
-         * Here, Redis is used as a state store for sentiment analysis results in much the same way as
-         * accumulators in a stream processing system. 
+         * Updates the Redis sentiment data using the cached Lua script.
+         * Timestamps are updated based on processing time.
          */
         private async Task UpdateRedis(Dictionary<string, int> result)
         {
             var db = _redis.GetDatabase();
-            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); // Current timestamp as Unix time
+            
+            // Using current time (processing time), but could be replaced with Kafka message timestamp,
+            // event time, or any other function
+            var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(); 
+
+            // Check if the script SHA1 is loaded, reload if necessary
+            if (_luaScriptSha1 == null)
+            {
+                Console.WriteLine("Lua script SHA1 is empty. Reloading the Lua script...");
+                _luaScriptSha1 = await LoadLuaScriptAsync();
+            }
 
             foreach (var item in result)
             {
                 try
                 {
-                    // Updated Lua script to include timestamp
-                    var script = @"
-                    local currentStatsJson = redis.call('HGET', KEYS[1], ARGV[1]);  
-                    local currentStats = cjson.decode(currentStatsJson or '{}');
-                    
-                    -- Update sentiment stats
-                    currentStats.totalSentiment = (currentStats.totalSentiment or 0) + tonumber(ARGV[2]);
-                    currentStats.mentionCount = (currentStats.mentionCount or 0) + 1;
-                    
-                    -- Add the timestamp
-                    currentStats.timestamp = tonumber(ARGV[3]);
-                    
-                    -- Save the updated stats back to Redis
-                    redis.call('HSET', KEYS[1], ARGV[1], cjson.encode(currentStats));
-                    ";
-
                     // Pass the theme (item.Key), sentiment value (item.Value), and the current timestamp
                     var keys = new RedisKey[] { SentimentAveragesHashName };
                     var values = new RedisValue[] { item.Key, item.Value.ToString(), currentTime };
-            
-                    await db.ScriptEvaluateAsync(script, keys, values);
+
+                    // Execute the cached Lua script using its SHA1 hash
+                    await db.ScriptEvaluateAsync(_luaScriptSha1, keys, values);
 
                     Console.WriteLine($"Updated Redis: {item.Key} (mention count), {item.Key} (sentiment stats with timestamp)");
                 }
