@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Streamiz.Kafka.Net;
 using Streamiz.Kafka.Net.SerDes;
 
@@ -16,12 +17,20 @@ namespace stream_processor
 
             // Stream Processing with message processing API call
             var builder = new StreamBuilder();
-            builder.Stream<string, string>("slack_messages")
+            var geminiStream = builder.Stream<string, string>("slack_messages")
                 .Filter((key, value) => !string.IsNullOrEmpty(value)) // Don't send empty messages to Gemini
-                .MapValues(value => messageProcessingService.ProcessTextAsync(value).Result)
-                .MapValues(ExtractJsonFromResponse)
+                .MapValues(value => new ProcessedSentimentResult{ OriginalMessage = value, ProcessedData = messageProcessingService.ProcessTextAsync(value).Result });
+
+                
+                geminiStream
+                .MapValues(result => ExtractJsonFromResponse (result.ProcessedData))
                 .Filter((key, value) => !string.IsNullOrEmpty(value))
                 .To("processing_results");
+
+                geminiStream
+                .MapValues(result => ExtractFullJsonFromResponse (result.OriginalMessage, result.ProcessedData))
+                .Filter((key, value) => !string.IsNullOrEmpty(value))
+                .To("full_results");
 
             // Start Kafka Streams
             var streams = new KafkaStream(builder.Build(), config);
@@ -51,6 +60,18 @@ namespace stream_processor
                 return jsonContent;
             }
             return null;
+        }
+        
+        public static string ExtractFullJsonFromResponse(string originalMessage, string processedData)
+        {
+            var extractedJson = ExtractJsonFromResponse(processedData);
+    
+            var fullResult = new
+            {
+                originalMessage, extractedJson
+            };
+
+            return JsonSerializer.Serialize(fullResult);
         }
     }
 }

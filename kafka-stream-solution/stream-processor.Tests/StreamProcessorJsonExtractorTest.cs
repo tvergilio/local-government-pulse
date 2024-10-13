@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using NUnit.Framework;
 
@@ -55,6 +56,102 @@ namespace stream_processor.Tests
             var result = StreamProcessor.ExtractJsonFromResponse(input);
 
             result.Should().BeNull();
+        }
+
+        [Test]
+        public void ExtractFullJsonFromResponse_ShouldReturnValidJson_WhenBothParametersAreValid()
+        {
+            // Arrange
+            var originalMessage = "This is the original message";
+            var processedData = "```json{\"key\":\"value\"}```";
+
+            // Act
+            var result = StreamProcessor.ExtractFullJsonFromResponse(originalMessage, processedData);
+
+            // Assert
+            var expectedJson = JsonSerializer.Serialize(new
+            {
+                originalMessage = originalMessage,
+                extractedJson = "{\"key\":\"value\"}"
+            });
+            result.Should().Be(expectedJson);
+        }
+
+        [Test]
+        public void
+            ExtractFullJsonFromResponse_ShouldReturnNullForExtractedJson_WhenProcessedDataDoesNotContainValidJson()
+        {
+            // Arrange
+            var originalMessage = "This is the original message";
+            var processedData = "No valid json data here";
+
+            // Act
+            var result = StreamProcessor.ExtractFullJsonFromResponse(originalMessage, processedData);
+
+            // Assert
+            var expectedJson = JsonSerializer.Serialize(new
+            {
+                originalMessage = originalMessage,
+                extractedJson = (string)null
+            });
+            result.Should().Be(expectedJson);
+        }
+
+        [Test]
+        public void ExtractFullJsonFromResponse_ShouldHandleEmptyOriginalMessage()
+        {
+            // Arrange
+            var originalMessage = "";
+            var processedData = "```json{\"key\":\"value\"}```";
+
+            // Act
+            var result = StreamProcessor.ExtractFullJsonFromResponse(originalMessage, processedData);
+
+            // Assert
+            var expectedJson = JsonSerializer.Serialize(new
+            {
+                originalMessage = originalMessage,
+                extractedJson = "{\"key\":\"value\"}"
+            });
+            result.Should().Be(expectedJson);
+        }
+
+        [Test]
+        public void ExtractFullJsonFromResponse_ShouldReturnNullForExtractedJson_WhenProcessedDataIsEmpty()
+        {
+            // Arrange
+            var originalMessage = "This is the original message";
+            var processedData = "";
+
+            // Act
+            var result = StreamProcessor.ExtractFullJsonFromResponse(originalMessage, processedData);
+
+            // Assert
+            var expectedJson = JsonSerializer.Serialize(new
+            {
+                originalMessage = originalMessage,
+                extractedJson = (string)null
+            });
+            result.Should().Be(expectedJson);
+        }
+
+        [Test]
+        public void ExtractFullJsonFromResponse_ShouldReturnNullForExtractedJson_WhenMarkersAreImproperlyPlaced()
+        {
+            // Arrange
+            var originalMessage = "This is the original message";
+            var processedData = "`json This is not properly closed";
+
+            // Act
+            var result = StreamProcessor.ExtractFullJsonFromResponse(originalMessage, processedData);
+
+            // Assert
+            var expectedJson = JsonSerializer.Serialize(new
+            {
+                originalMessage = originalMessage,
+                extractedJson = (string)null
+            });
+            result.Should().Be(expectedJson);
         }
     }
 }
