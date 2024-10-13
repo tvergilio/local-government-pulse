@@ -136,7 +136,55 @@ services:
         reservations:
           cpus: '1.0'
           memory: 1G
-
+          
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+    env_file:
+      - .env
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: $INFLUXDB_USERNAME
+      DOCKER_INFLUXDB_INIT_PASSWORD: $INFLUXDB_PASSWORD
+      DOCKER_INFLUXDB_INIT_ORG: $INFLUXDB_ORG
+      DOCKER_INFLUXDB_INIT_BUCKET: $INFLUXDB_BUCKET
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: $INFLUXDB_TOKEN
+    networks:
+      - kafka-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G    
+  
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    volumes:
+      - ./telegraf.conf:/etc/telegraf/telegraf.conf:ro
+    networks:
+      - kafka-network
+    env_file:
+      - .env
+    depends_on:
+      - influxdb
+      - kafka
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+  
   ollama:
     image: ollama/ollama
     container_name: ollama
@@ -154,3 +202,4 @@ networks:
     driver: bridge
 volumes:
   ollama:
+  influxdb-data:
