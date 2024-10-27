@@ -18,7 +18,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 
 ### System Components:
 
-![components.png](assets/images/components.png)
+![solution-architecture.png](assets/images/solution-architecture.png)
 
 *   **Kafka Topics:**
     *   `slack_messages`: Ingests raw messages from Slack (or other sources)
@@ -62,6 +62,8 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 5.  **Aggregate and Identify Trends:** The `TrendAggregator` works like a manual windowing function. It periodically aggregates the data in Redis and updates the `trending-topics` sorted set.
 6.  **Real-time Updates via SignalR:** The `TrendHub` in the Web API retrieves data from Redis and pushes updates to connected clients in real-time using SignalR.
 7.  **Store and Query in InfluxDB:** The full_results topic data is ingested by Telegraf and stored in InfluxDB. This data can be queried and visualised to monitor trends over time, enabling a detailed analysis of local government issues and sentiment.
+
+![influxDb.png](assets/images/influxDb.png)
 
 ### Redis Data Structures:
 
