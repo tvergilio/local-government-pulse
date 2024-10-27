@@ -13,6 +13,8 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 *   **Redis:** An in-memory data store used to track sentiment trends and identify trending topics.
 *   **StackExchange.Redis:** A .NET client library for interacting with Redis
 *   **SignalR:** A .NET library for adding real-time web functionality to applications.
+*   **InfluxDB:** A time-series database for high-performance handling of time-stamped data, used here to store and analyse trend data.
+*   **Telegraf:** A plugin-driven agent that collects and sends metrics and events to various outputs, including InfluxDB. Here, it consumes data from Kafka and writes it to InfluxDB.
 
 ### System Components:
 
@@ -43,6 +45,9 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 *   **Web API (`front-end`):**
     *   Hosts the SignalR hub (`TrendHub`) for real-time communication with the front-end.
     *   Serves the static files for the front-end application (HTML, CSS, JavaScript).
+*   **InfluxDB and Telegraf:**
+    *   Telegraf acts as a bridge between Kafka and InfluxDB, consuming data from the full_results Kafka topic and sending it to InfluxDB for time-series storage and analysis.
+    *   InfluxDB stores this data, allowing for efficient querying and analysis of trends over time using the UI or API.
 
 ### Resource Allocation:
 
@@ -56,6 +61,7 @@ Local Government Pulse is a real-time Kafka stream processing system built using
 4.  **Consume and Update Redis:** The `redis-consumer` consumes the analysis results and updates Redis data structures.
 5.  **Aggregate and Identify Trends:** The `TrendAggregator` works like a manual windowing function. It periodically aggregates the data in Redis and updates the `trending-topics` sorted set.
 6.  **Real-time Updates via SignalR:** The `TrendHub` in the Web API retrieves data from Redis and pushes updates to connected clients in real-time using SignalR.
+7.  **Store and Query in InfluxDB:** The full_results topic data is ingested by Telegraf and stored in InfluxDB. This data can be queried and visualised to monitor trends over time, enabling a detailed analysis of local government issues and sentiment.
 
 ### Redis Data Structures:
 

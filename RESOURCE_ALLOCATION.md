@@ -13,6 +13,8 @@ This section explains the resource allocation used for each component in the pro
 | **Slack Producer** | `0.5 CPUs, 512MB RAM`   | `0.5 CPUs, 512MB RAM`   | The Slack Producer runs a Java-based application that handles incoming Slack messages. The load is light, with minimal CPU and memory requirements. |
 | **Redis Consumer** | `1.0 CPUs, 1GB RAM`     | `0.5 CPUs, 512MB RAM`   | Consumes data from Kafka and updates Redis. Requires stable memory allocation to process streaming data and keep Redis updated. |
 | **WebSocket Consumer** | `1.0 CPUs, 1.5GB RAM`  | `0.5 CPUs, 1GB RAM`     | Handles communication with the front-end via SignalR. Requires more memory for managing concurrent client connections and pushing updates in real time. |
+| **InfluxDB**       | `1.5 CPUs, 2GB RAM`     | `1.0 CPUs, 1GB RAM`     | InfluxDB requires stable resources for ingesting and querying time-series data efficiently. |
+| **Telegraf**       | `1.0 CPUs, 2GB RAM`     | `0.5 CPUs, 1GB RAM`     | Telegraf consumes from Kafka and forwards to InfluxDB, requiring modest CPU and memory allocation for data forwarding. |
 
 ## Rationale for Resource Allocation
 
